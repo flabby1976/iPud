@@ -5,9 +5,9 @@ import spidev
 
 
 # SPI connection
-SCE  = 10 # gpio pin 24 = wiringpi no. 10 (CE0 BCM 8)
-SCLK = 14 # gpio pin 23 = wiringpi no. 14 (SCLK BCM 11)
-DIN  = 12 # gpio pin 19 = wiringpi no. 12 (MOSI BCM 10)
+SCE = 10  # gpio pin 24 = wiringpi no. 10 (CE0 BCM 8)
+SCLK = 14  # gpio pin 23 = wiringpi no. 14 (SCLK BCM 11)
+DIN = 12  # gpio pin 19 = wiringpi no. 12 (MOSI BCM 10)
 
 # data
 COLS = 20
@@ -31,7 +31,7 @@ VFD_ENTRYSHIFTDECREMENT = 0x00
 
 # flags for display on/off control
 VFD_DISPLAYON = 0x04
-#VFD_DISPLAYOFF = 0x00
+# VFD_DISPLAYOFF = 0x00
 VFD_CURSORON = 0x02
 VFD_CURSOROFF = 0x00
 VFD_BLINKON = 0x01
@@ -62,13 +62,14 @@ VFD_SPIDATA = 0xFA
 
 def init():
     _displayfunction = VFD_8BITMODE
-    begin(COLS,ROWS,_displayfunction, VFD_BRIGHTNESS25)
+    begin(COLS, ROWS, _displayfunction, VFD_BRIGHTNESS25)
 
-def begin(cols, lines, _displayfunction, brightness):
+
+def begin(_, lines, _displayfunction, brightness):
     if lines > 1:
-       _displayfunction |= VFD_2LINE
+        _displayfunction |= VFD_2LINE
 
-    setBrightness(_displayfunction, brightness)
+    set_brightness(_displayfunction, brightness)
 
     _numlines = lines
     _currline = 0
@@ -83,56 +84,63 @@ def begin(cols, lines, _displayfunction, brightness):
     
     # turn the display on with no cursor or blinking default
     command(VFD_DISPLAYCONTROL | VFD_DISPLAYON)
-    
-    
+
     clear()
     home()
-    
+
+
 def display(_displaycontrol): 
     _displaycontrol |= VFD_DISPLAYON 
-    command(VFD_DISPLAYCONTROL | _displaycontrol)  
+    command(VFD_DISPLAYCONTROL | _displaycontrol)
+
  
 def clear():
     command(VFD_CLEARDISPLAY)
     time.sleep(2)
 
+
 def home():
     command(VFD_RETURNHOME)
     time.sleep(2)
 
-def setBrightness(_displayfunction, brightness):
-    #set the brightness (only if a valid value is passed
+
+def set_brightness(_displayfunction, brightness):
+    # set the brightness (only if a valid value is passed
     if brightness <= VFD_BRIGHTNESS25: 
         _displayfunction &= ~VFD_BRIGHTNESS25
         _displayfunction |= brightness
 
     command(VFD_FUNCTIONSET | _displayfunction)
 
-def setCursor(col, row):
+
+def set_cursor(col, row):
     _numlines = 2
     row_offsets = [0x00, 0x40, 0x14, 0x54]
     if row > _numlines:
-       row = _numlines-1        # count rows starting with 0
-    print ("Sending cursor data :")
-    command(VFD_SETDDRAMADDR | (col + row_offsets[row]) )
+        row = _numlines-1        # count rows starting with 0
+    print("Sending cursor data :")
+    command(VFD_SETDDRAMADDR | (col + row_offsets[row]))
 
-def noDisplay(vfdoff):
+
+def no_display(vfdoff):
     command(VFD_DISPLAYCONTROL | vfdoff)
 
 
 def text(string):
     #   display_char(ord(char))
-    l = [VFD_SPIDATA]
+    line = [VFD_SPIDATA]
     for char in string:
-       l.append(ord(char))
-    spi.writebytes(list(l))
-    
+        line.append(ord(char))
+    spi.writebytes(list(line))
+
+
 def blank_lines():
-    thistext = "                    "
-    setCursor(0,0)
-    text(thistext)
-    setCursor(0,1)
-    text(thistext)     
+    _thistext = "                    "
+    set_cursor(0, 0)
+    text(_thistext)
+    set_cursor(0, 1)
+    text(_thistext)
+
 
 def command(_setting):
     spi.xfer2([VFD_SPICOMMAND, _setting])
@@ -141,8 +149,8 @@ def command(_setting):
 # initalize SPI
 spi = spidev.SpiDev()
 
-spi.open(0,0)
-spi.max_speed_hz=5000000
+spi.open(0, 0)
+spi.max_speed_hz = 5000000
 # set spi mode to 3WIRE
 spi.mode = 3
 
@@ -150,23 +158,23 @@ print("<==== Mainlline Starts ====>")
 init()
 
 print("<==== Print Text ====>")
-setCursor(0,0)
+set_cursor(0, 0)
 thistext = "Hello, World!"
 text(thistext)
 
 
-setCursor(0,1)
+set_cursor(0, 1)
 thistext = "See me Again!"
 text(thistext)
 
 time.sleep(4)
 
 blank_lines()
-setCursor(0,0)
+set_cursor(0, 0)
 thistext = "See me now?"
 text(thistext)
 
-setCursor(0,1)
+set_cursor(0, 1)
 thistext = "I'm Back!"
 text(thistext)
 
