@@ -1,4 +1,5 @@
 # Taken from https://github.com/thisoldgeek/RPi_SPI_VFD
+# Mod made on Pi
 
 import time
 import spidev
