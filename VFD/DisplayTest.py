@@ -162,6 +162,7 @@ set_cursor(0, 0)
 thistext = "Hello, World!"
 text(thistext)
 
+time.sleep(4)
 
 set_cursor(0, 1)
 thistext = "See me Again!"
@@ -177,5 +178,8 @@ text(thistext)
 set_cursor(0, 1)
 thistext = "I'm Back!"
 text(thistext)
+
+time.sleep(4)
+blank_lines()
 
 print("<==== End of Program ====>")
