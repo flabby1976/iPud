@@ -24,3 +24,5 @@ defaults.pcm.card 0
 
 Also need to turn the volume up with ```alsamixer -c 1```
 
+Audio amplifier [Adafruit Mono 2.5W Class D Audio Amplifier - PAM8302](https://www.adafruit.com/product/2130)
+
