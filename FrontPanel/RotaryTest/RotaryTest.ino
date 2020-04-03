@@ -11,7 +11,7 @@
  int aState = 1;
  int aLastState;  
 
- int sensorPin = A1;    // select the input pin for the potentiometer
+ int sensorPin = A0;    // select the input pin for the potentiometer
  int ledPin = 13;      // select the pin for the LED
  int sensorValue = 0;  // variable to store the value coming from the sensor
 
