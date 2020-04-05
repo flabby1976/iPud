@@ -26,5 +26,7 @@ Also need to turn the volume up with ```alsamixer -c 1```
 
 Audio amplifier [Adafruit Mono 2.5W Class D Audio Amplifier - PAM8302](https://www.adafruit.com/product/2130)
 
-Radio streams http://www.suppertime.co.uk/blogmywiki/2015/04/updated-list-of-bbc-network-radio-urls/
+BBC Radio streams http://www.suppertime.co.uk/blogmywiki/2015/04/updated-list-of-bbc-network-radio-urls/
+
+http://www.radiofeeds.co.uk/mp3.asp
 
