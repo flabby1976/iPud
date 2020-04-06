@@ -18,11 +18,22 @@ https://cdn-learn.adafruit.com/downloads/pdf/usb-audio-cards-with-a-raspberry-pi
 Using Rasbian stretch so only had to edit ```/usr/share/alsa/alsa.conf``` to change default audio card from 0 to 1
 
 ```
-defaults.ctl.card 0
-defaults.pcm.card 0
+defaults.ctl.card 1
+defaults.pcm.card 1
 ```
 
 Also need to turn the volume up with ```alsamixer -c 1```
+
+Then test with -
+
+```speaker-test -c2 --test=wav -w /usr/share/sounds/alsa/Front_Center.wav```
+
+and then -
+
+```
+sudo apt-get install mpg123
+mpg123 http://bbcmedia.ic.llnwd.net/stream/bbcmedia_radio4fm_mf_p
+```
 
 Audio amplifier [Adafruit Mono 2.5W Class D Audio Amplifier - PAM8302](https://www.adafruit.com/product/2130)
 
