@@ -1,9 +1,16 @@
 import serial
 
-ser = serial.Serial('/dev/ttyACM0',9600)
-s = [0]
-while True:
-	read_serial=ser.readline()
-	s[0] = str(int (ser.readline(),16))
-	print s[0]
-	print read_serial
+ser = serial.Serial(
+ port='/dev/ttyUSB0',
+ baudrate = 9600,
+ parity=serial.PARITY_NONE,
+ stopbits=serial.STOPBITS_ONE,
+ bytesize=serial.EIGHTBITS,
+ timeout=1
+)
+
+while 1:
+ x=ser.readline()
+ print (x.decode())
+
+
