@@ -37,7 +37,7 @@
   Serial.println(sensorValue);
 
   // stop the program for <sensorValue> milliseconds:
-  delay(1000);
+  delay(2000);
 
  
    aState = digitalRead(outputA); // Reads the "current" state of the outputA
