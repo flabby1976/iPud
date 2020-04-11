@@ -2,10 +2,6 @@ import serial
 import cmd
 
 class Dummy(cmd.Cmd):
-    def precmd(self, line):
-		print (line)
-#		return line.decode()
-		return line
 
     def cmdloop(self, intro=None):
         """Repeatedly issue a prompt, accept input, parse an initial prefix
