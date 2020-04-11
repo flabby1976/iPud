@@ -1,7 +1,8 @@
 import serial
 import cmd
 
-# testing git push only
+class dummy_f():
+
 
 class Dummy(cmd.Cmd):
 
@@ -79,5 +80,5 @@ ll = Dummy(stdin=ser, stdout=ser)
 #ll.use_rawinput = False
 #ll = Dummy()
 ll.use_rawinput = False
-ll.prompt = "b".encode()
+ll.prompt = ">".encode()
 ll.cmdloop()
