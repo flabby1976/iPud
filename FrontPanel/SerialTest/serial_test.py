@@ -1,6 +1,8 @@
 import serial
 import cmd
 
+# testing git push only
+
 class Dummy(cmd.Cmd):
 
     def cmdloop(self, intro=None):
@@ -54,7 +56,11 @@ class Dummy(cmd.Cmd):
                 except ImportError:
                     pass
 
+    def default(self, line):
+      print(line)
 
+    def do_295(self, arg):
+       print("boo!")
 
 ser = serial.Serial(
  port='/dev/ttyUSB0',
