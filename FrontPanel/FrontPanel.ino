@@ -60,7 +60,7 @@ void recvWithStartEndMarkers() {
     char endMarker = '>';
     char rc;
 
-    if (Serial.available() > 0 && newData == false) {
+    while (Serial.available() > 0 && newData == false) {
         rc = Serial.read();
 
 //        Serial.write(rc);
