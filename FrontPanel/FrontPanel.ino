@@ -1,14 +1,15 @@
+#include <FR_RotaryEncoder.h>
 #include <Pushbutton.h>
 
 /*  Arduino code for iPud front panel buttons and switches    
  *  by Andrew Robinson
  *  
  *  Uses Pushbutton library from https://github.com/pololu/pushbutton-arduino
- *  Uses rotary encoder reading/debouncing from http://www.technoblogy.com/show?1YHJ
+ *  Uses rotary encoder library from https://github.com/fryktoria/FR_RotaryEncoder
+ *          which is based on reading/debouncing from http://www.technoblogy.com/show?1YHJ
  *  
  */
 
-#define rotPushPin 4
 
 #define push1Pin 8
 #define push2Pin 9
@@ -17,15 +18,16 @@
 
 #define volumePin A0
 
+int pinSCK = 3; // Interrupt pin for rotary encoder. Can be 2 or 3      
+int pinDT = 2; // Better select a pin from 4 to 7
+int pinSW = 4; // Interrupt pin for switch. Can be 2 or 3 
+int rotaryMaximum = 100;
+int rotaryMinimum = -(rotaryMaximum - 1);
+bool rotaryWrapMode = false;
 
-const int EncoderA = 3;           // PD4
-const int EncoderAInt = PCINT19;  // Pin change interrupt on PD4
-const int EncoderB = 2;           // PD5
+unsigned long button_time = 0;
 
-// Rotary encoder **********************************************
-volatile int a0;
-volatile int c0;
-volatile int Count = 0;
+//-----------------------------------------------------------------------------------
 
 // Push buttons
 Pushbutton push1(push1Pin);
@@ -33,72 +35,78 @@ Pushbutton push2(push2Pin);
 Pushbutton push3(push3Pin);
 Pushbutton push4(push4Pin);
 
-Pushbutton rotPush(rotPushPin);
+// Rotary encoder
+RotaryEncoder rencoder(pinSCK, pinDT, pinSW);
 
+// Interrupt handling routine for the rotary
+void ISRrotary() {
+    rencoder.rotaryUpdate();
+}
+
+Pushbutton pushk(pinSW);
 
 int ledPin = 13;      // select the pin for the LED
-//int sensorValue = 0;  // variable to store the value coming from the sensor
-
-// Called when encoder value changes
-void ChangeValue (bool Up) {
-  digitalWrite(ledPin, Up);
-  Count = max(min((Count + (Up ? 1 : -1)), 1000), 0);
-  Serial.println(Count);
-}
-
-// Pin change interrupt service routine
-ISR (PCINT2_vect) {
-  int a = PIND>>EncoderA & 1;     // Change these if
-  int b = PIND>>EncoderB & 1;     // using different pins
-  if (a != a0) {                  // A changed
-    a0 = a;
-    if (b != c0) {
-      c0 = b;
-      ChangeValue(a == b);
-    }
-  }
-}
-
 
  void setup() { 
   // declare the ledPin as an OUTPUT:
    pinMode(ledPin, OUTPUT);
 
-   // rotary switch pins
-   pinMode(EncoderA, INPUT_PULLUP);
-   pinMode(EncoderB, INPUT_PULLUP);
+  rencoder.enableInternalRotaryPullups(); 
+  rencoder.setRotaryLimits(rotaryMinimum, rotaryMaximum, rotaryWrapMode);
 
-   // rotary switch push pin
-   pinMode (rotPushPin,INPUT);
-   digitalWrite(rotPushPin, HIGH);
+   // One interrupt is required for the rotary
+  attachInterrupt(digitalPinToInterrupt(pinSCK), ISRrotary, CHANGE);
  
-   // setup theserial port for comms with Pi
+   // setup the serial port for comms with Pi
    Serial.begin (9600);
-
-   PCMSK2 = 1<<PCINT19;            // Configure pin change interrupt on A
-   PCICR = 1<<PCIE2;               // Enable interrupt
-   PCIFR = 1<<PCIF2;               // Clear interrupt flag
-   
-   Serial.println("Ready");
  } 
+
+int t;
 
 void loop() {
 
-   if (push1.getSingleDebouncedPress()){
-    Serial.println("Button 1 pressed");
-   }
-   if (push2.getSingleDebouncedPress()){
-    Serial.println("Button 2 pressed");
-   }
-   if (push3.getSingleDebouncedPress()){
-    Serial.println("Button 3 pressed");
-   }
-   if (push4.getSingleDebouncedPress()){
-    Serial.println("Button 4 pressed");
+   if (pushk.getSingleDebouncedPress()){
+    button_time = millis();
+    t = 0;
+    // Note: this holds the whole loop up while button is pressed
+    while ( ( t < 1000) && pushk.isPressed() ) {
+      t = millis()-button_time;
+      }
+    if (t<1000)
+       Serial.println("knob button press");
+    else
+       Serial.println("knob button longpress");    
    }
 
-   if (rotPush.getSingleDebouncedPress()){
-    Serial.println("Rotary button pressed");
+ 
+   if (push1.getSingleDebouncedPress()){
+    button_time = millis();
+    t = 0;
+    while ( ( t < 1000) && push1.isPressed() ) {
+      t = millis()-button_time;
+      }
+    if (t<1000)
+       Serial.println("button 1 press");
+    else
+       Serial.println("button 1 longpress");    
    }
    
+   if (push2.getSingleDebouncedPress()){
+    Serial.println("button 2 press");
+   }
+   if (push3.getSingleDebouncedPress()){
+    Serial.println("button 3 press");
+   }
+   if (push4.getSingleDebouncedPress()){
+    Serial.println("button 4 press");
+   }
+
+  // Rotary 
+  int currentPosition = rencoder.getPosition();
+  if (lastPosition != currentPosition) {
+    lastPosition = currentPosition;
+    Serial.print("knob position ");Serial.println(currentPosition); 
+  }
+ 
  }
+ 
