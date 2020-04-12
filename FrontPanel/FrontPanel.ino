@@ -1,3 +1,4 @@
+#include <SPI_VFD.h>
 #include <FR_RotaryEncoder.h>
 #include <Pushbutton.h>
 
@@ -19,13 +20,22 @@
 #define volumePin A0
 
 int pinSCK = 3; // Interrupt pin for rotary encoder. Can be 2 or 3      
-int pinDT = 2; // Better select a pin from 4 to 7
-int pinSW = 4; // Interrupt pin for switch. Can be 2 or 3 
+int pinDT = 4; // Better select a pin from 4 to 7
+int pinSW = 2; // Interrupt pin for switch. Can be 2 or 3
 int rotaryMaximum = 100;
 int rotaryMinimum = -(rotaryMaximum - 1);
 bool rotaryWrapMode = false;
 
+int mSIO = 5;
+int mSTB = 6;
+int mSCK = 7;
+
 unsigned long button_time = 0;
+
+const byte numChars = 64;
+char receivedChars[numChars];
+
+boolean newData = false;
 
 //-----------------------------------------------------------------------------------
 
@@ -43,25 +53,72 @@ void ISRrotary() {
     rencoder.rotaryUpdate();
 }
 
+void recvWithStartEndMarkers() {
+    static boolean recvInProgress = false;
+    static byte ndx = 0;
+    char startMarker = '<';
+    char endMarker = '>';
+    char rc;
+
+    if (Serial.available() > 0 && newData == false) {
+        rc = Serial.read();
+
+//        Serial.write(rc);
+
+        if (recvInProgress == true) {
+            if (rc != endMarker) {
+                receivedChars[ndx] = rc;
+                ndx++;
+                if (ndx >= numChars) {
+                    ndx = numChars - 1;
+                }
+            }
+            else {
+                receivedChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                newData = true;
+            }
+        }
+
+        else if (rc == startMarker) {
+            recvInProgress = true;
+        }
+    }
+}
+
+
 Pushbutton pushk(pinSW);
+
+// initialize the VFD with the numbers of the interface pins
+// (data, clk, strobe)
+SPI_VFD vfd(mSIO, mSCK, mSTB);
 
 int ledPin = 13;      // select the pin for the LED
 
- void setup() { 
+void setup() { 
   // declare the ledPin as an OUTPUT:
-   pinMode(ledPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
 
+  // set up the LCD's number of columns and rows: 
+  vfd.begin(20, 2);
+  // Print a message to the LCD.
+  vfd.print("hello, world!");
+  
   rencoder.enableInternalRotaryPullups(); 
   rencoder.setRotaryLimits(rotaryMinimum, rotaryMaximum, rotaryWrapMode);
-
-   // One interrupt is required for the rotary
+  
+  // One interrupt is required for the rotary
   attachInterrupt(digitalPinToInterrupt(pinSCK), ISRrotary, CHANGE);
- 
-   // setup the serial port for comms with Pi
-   Serial.begin (9600);
- } 
+  
+  // setup the serial port for comms with Pi
+  Serial.begin (9600);
+
+  Serial.println("<Arduino is ready>");
+} 
 
 int t;
+int lastPosition;
 
 void loop() {
 
@@ -106,6 +163,16 @@ void loop() {
   if (lastPosition != currentPosition) {
     lastPosition = currentPosition;
     Serial.print("knob position ");Serial.println(currentPosition); 
+  }
+
+  recvWithStartEndMarkers();
+  if (newData == true){
+    vfd.setCursor(0, 1);
+    vfd.print(receivedChars);
+    newData = false;
+  }
+  else {
+//    Serial.println("0");
   }
  
  }

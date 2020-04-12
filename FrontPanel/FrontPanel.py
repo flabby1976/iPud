@@ -1,8 +1,6 @@
 import serial
 import cmd
 
-class dummy_f():
-
 
 class Dummy(cmd.Cmd):
 
