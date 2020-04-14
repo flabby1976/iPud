@@ -250,6 +250,10 @@ void handleVFDcmd(char *cmd){
         }        
         break;
       }
+      case '?': { // ping from client to make sure I'm awake
+        Serial.println("!");
+        break;
+      }
       default:
         Serial.println("?");
         Serial.println(receivedChars);
