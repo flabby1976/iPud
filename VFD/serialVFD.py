@@ -1,7 +1,7 @@
 import time
 
 
-class Serial_VFD:
+class Serial_VFD(object):
 
     LEFT_TO_RIGHT = 0
     RIGHT_TO_LEFT = 1
@@ -24,7 +24,7 @@ class Serial_VFD:
 
         self._message = None
         self._enable = None
-        self._direction = None
+        self._direction = self.LEFT_TO_RIGHT
         # track row and column used in cursor_position
         # initialize to 0,0
         self.row = 0
@@ -69,7 +69,7 @@ class Serial_VFD:
         if show:
             self.serial_device.write(b'<k 1>')
         else:
-            self.serial_device.write(b'<k 1>')
+            self.serial_device.write(b'<k 0>')
 
     def cursor_position(self, column, row):
         """Move the cursor to position ``column``, ``row`` for the next
@@ -182,12 +182,12 @@ class Serial_VFD:
     def move_left(self):
         """Moves displayed text left one column.
         """
-        self.serial_device.write(b's l')
+        self.serial_device.write(b'<s l>')
 
     def move_right(self):
         """Moves displayed text right one column.
         """
-        self.serial_device.write(b's r')
+        self.serial_device.write(b'<s r>')
 
     @property
     def text_direction(self):
@@ -208,11 +208,11 @@ class Serial_VFD:
 
     def _left_to_right(self):
         # Displays text from left to right on the LCD.
-        self.serial_device.write(b'r 0')
+        self.serial_device.write(b'<r 0>')
 
     def _right_to_left(self):
         # Displays text from right to left on the LCD.
-        self.serial_device.write(b'r 1')
+        self.serial_device.write(b'<r 1>')
 
     def create_char(self, location, pattern):
         pass
