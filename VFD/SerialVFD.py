@@ -1,7 +1,7 @@
 import time
 
 
-class Serial_VFD(object):
+class SerialVFD(object):
 
     LEFT_TO_RIGHT = 0
     RIGHT_TO_LEFT = 1
@@ -15,6 +15,13 @@ class Serial_VFD(object):
         self.serial_device = serial_device
 
         # Initialise the display
+        awake = False
+        while not awake:
+          self.serial_device.write(b'<?>')
+          ch = self.serial_device.read()
+          print(ch)
+          awake = (ch == '!'.encode())
+          time.sleep(1)
 
         self._cursoron = False
         self._cursorblink = False
@@ -32,7 +39,7 @@ class Serial_VFD(object):
         self._column_align = False
 
     def home(self):
-        """Moves the cursor "home" to position (1, 1).
+        """Moves the cursor "home" to position (0, 0).
         """
         self.serial_device.write(b'<h>')
         time.sleep(0.003)

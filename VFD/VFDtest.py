@@ -1,15 +1,11 @@
 import serial
-import serialVFD
+import SerialVFD
 import time
 
 ser = serial.Serial(port='/dev/ttyUSB0')
 
-time.sleep(5)
-
-print("now")
-
 # Initialise the lcd class
-lcd = serialVFD.Serial_VFD( ser, 20, 2)
+lcd = SerialVFD.SerialVFD( ser, 20, 2)
 
 # Print a two line message
 lcd.message = "Hello\nCircuitPython"
@@ -23,12 +19,26 @@ lcd.message = "Hello\nCircuitPython"
 time.sleep(5)
 # Return text direction to left to right
 lcd.text_direction = lcd.LEFT_TO_RIGHT
+lcd.clear()
+# Print a two line message, with column aligh
+lcd.cursor_position(3, 0)
+lcd.column_align = True
+lcd.message = "With\ncolumn align"
+# Wait 5s
+time.sleep(5)
+lcd.clear()
+# Print a two line message, with column aligh
+lcd.row = 0
+lcd.column = 3
+lcd.column_align = False
+lcd.message = "Without\ncolumn align"
+# Wait 5s
+time.sleep(5)
+lcd.clear()
 # Display cursor
 lcd.clear()
-print(lcd.cursor)
 lcd.cursor = True
-lcd.message = "Cursor! "
-print(lcd.cursor)
+lcd.message = "Cursor!"
 # Wait 5s
 time.sleep(5)
 # Display blinking cursor
@@ -48,6 +58,5 @@ for i in range(len(scroll_msg)):
     lcd.move_left()
 lcd.clear()
 lcd.message = "Going to sleep\nCya later!"
-
 time.sleep(2)
-
+lcd.display = False
