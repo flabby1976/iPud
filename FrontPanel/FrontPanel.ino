@@ -173,7 +173,7 @@ void handleVFDcmd(char *cmd){
       case 'd': { // display on/off
         s = strtok(NULL," ");
         if (s != NULL) {
-          if (s[0] == 'l') {
+          if (s[0] == '1') {
             vfd.display();
           }
           else {
@@ -208,7 +208,7 @@ void handleVFDcmd(char *cmd){
       case 'k': { // cursor on/off
         s = strtok(NULL," ");
         if (s != NULL) {
-          if (s[0] == 'l') {
+          if (s[0] == '1') {
             vfd.cursor();
           }
           else {
@@ -223,7 +223,7 @@ void handleVFDcmd(char *cmd){
       case 'b': { // blink on/off
         s = strtok(NULL," ");
         if (s != NULL) {
-          if (s[0] == 'l') {
+          if (s[0] == '1') {
             vfd.blink();
           }
           else {
@@ -238,7 +238,7 @@ void handleVFDcmd(char *cmd){
       case 'r': { // direction
         s = strtok(NULL," ");
         if (s != NULL) {
-          if (s[0] == 'l') {
+          if (s[0] == '1') {
             vfd.rightToLeft();
           }
           else {
