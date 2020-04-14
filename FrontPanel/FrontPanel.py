@@ -1,6 +1,6 @@
 import serial
 import cmd
-
+import time
 
 class Dummy(cmd.Cmd):
 
@@ -36,17 +36,23 @@ class Dummy(cmd.Cmd):
     def default(self, line):
       print(line)
 
-    def do_button(self, arg):
-       print(arg)
+    def do_b(self, arg):
+       global counter
+       counter = counter + 1
+       print (arg+": "+str(counter))
 
-ser = serial.Serial(
- port='/dev/ttyUSB0',
- baudrate = 9600,
- parity=serial.PARITY_NONE,
- stopbits=serial.STOPBITS_ONE,
- bytesize=serial.EIGHTBITS,
- timeout=10
-)
+ser = serial.Serial(port='/dev/ttyUSB0')
+
+time.sleep(5)
+
+print("now")
+
+string = "<m 0 1>"
+ser.write(string.encode())
+string = "<p Pi ready>"
+ser.write(string.encode())
+
+counter = 0
 
 #while 1:
 # x=ser.readline()
