@@ -157,6 +157,10 @@ void handleVFDcmd(char *cmd){
   if (pch != NULL) {
     switch(pch[0]){
       case 'h':{ // home and clear
+        vfd.home();
+        break;
+      }
+      case 'c':{ // home and clear
         vfd.clear();
         break;
       }
@@ -164,6 +168,21 @@ void handleVFDcmd(char *cmd){
         a = atoi(strtok(NULL," "));
         b = atoi(strtok(NULL," "));
         vfd.setCursor(a, b);
+        break;
+      }
+      case 'd': { // display on/off
+        s = strtok(NULL," ");
+        if (s != NULL) {
+          if (s[0] == 'l') {
+            vfd.display();
+          }
+          else {
+            vfd.noDisplay();
+          }
+         }
+        else {
+           vfd.display();
+        }        
         break;
       }
       case 'p': { // print text
@@ -175,7 +194,6 @@ void handleVFDcmd(char *cmd){
         s = strtok(NULL," ");
         if (s != NULL) {
           if (s[0] == 'l') {
-            Serial.println(s[0]);
             vfd.scrollDisplayLeft();
           }
           else {
@@ -184,6 +202,51 @@ void handleVFDcmd(char *cmd){
          }
         else {
            vfd.scrollDisplayRight();
+        }        
+        break;
+      }
+      case 'k': { // cursor on/off
+        s = strtok(NULL," ");
+        if (s != NULL) {
+          if (s[0] == 'l') {
+            vfd.cursor();
+          }
+          else {
+            vfd.noCursor();
+          }
+         }
+        else {
+           vfd.cursor();
+        }        
+        break;
+      }
+      case 'b': { // blink on/off
+        s = strtok(NULL," ");
+        if (s != NULL) {
+          if (s[0] == 'l') {
+            vfd.blink();
+          }
+          else {
+            vfd.noBlink();
+          }
+         }
+        else {
+           vfd.blink();
+        }        
+        break;
+      }
+      case 'r': { // direction
+        s = strtok(NULL," ");
+        if (s != NULL) {
+          if (s[0] == 'l') {
+            vfd.rightToLeft();
+          }
+          else {
+            vfd.leftToRight();
+          }
+         }
+        else {
+           vfd.leftToRight();
         }        
         break;
       }
