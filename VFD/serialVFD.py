@@ -1,31 +1,24 @@
+import time
+
+
 class Serial_VFD:
+
+    LEFT_TO_RIGHT = 0
+    RIGHT_TO_LEFT = 1
 
     def __init__(self, serial_device, columns, lines):
 
         self.columns = columns
         self.lines = lines
+
         #  save pin numbers
         self.serial_device = serial_device
 
-        # # Initialise the display
-        # self._write8(0x33)
-        # self._write8(0x32)
-        # # Initialise display control
-        # self.displaycontrol = _LCD_DISPLAYON | _LCD_CURSOROFF | _LCD_BLINKOFF
-        # # Initialise display function
-        # self.displayfunction = _LCD_4BITMODE | _LCD_1LINE | _LCD_2LINE | _LCD_5X8DOTS
-        # # Initialise display mode
-        # self.displaymode = _LCD_ENTRYLEFT | _LCD_ENTRYSHIFTDECREMENT
-        # # Write to displaycontrol
-        # self._write8(_LCD_DISPLAYCONTROL | self.displaycontrol)
-        # # Write to displayfunction
-        # self._write8(_LCD_FUNCTIONSET | self.displayfunction)
-        # # Set entry mode
-        # self._write8(_LCD_ENTRYMODESET | self.displaymode)
-        
+        # Initialise the display
+
         self._cursoron = False
         self._cursorblink = False
-        self._displayon = True
+        self._display = True
         
         self.clear()
 
@@ -41,16 +34,13 @@ class Serial_VFD:
     def home(self):
         """Moves the cursor "home" to position (1, 1).
         """
-        code = b'<h>'
-        self.serial_device.write(code)
+        self.serial_device.write(b'<h>')
         time.sleep(0.003)
-
 
     def clear(self):
         """Clears everything displayed on the LCD.
         """
-        code = b'<c>'
-        self.serial_device.write(code)
+        self.serial_device.write(b'<c>')
         time.sleep(0.003)
 
     @property
@@ -77,10 +67,9 @@ class Serial_VFD:
     def cursor(self, show):
         self._cursoron = show
         if show:
-            code = '<k 1>
+            self.serial_device.write(b'<k 1>')
         else:
-            code = '<k 0>
-        self.serial_device.write(code.encode())
+            self.serial_device.write(b'<k 1>')
 
     def cursor_position(self, column, row):
         """Move the cursor to position ``column``, ``row`` for the next
@@ -97,7 +86,7 @@ class Serial_VFD:
             column = self.columns - 1
         
         # Set location 
-        code = '<m ' + str(col) + ' ' + str(row) + '>'
+        code = '<m ' + str(column) + ' ' + str(row) + '>'
         self.serial_device.write(code.encode())
 
         # Update self.row and self.column to match setter
@@ -115,25 +104,24 @@ class Serial_VFD:
     def blink(self, blink):
         self._cursorblink = blink
         if blink:
-            code = '<b 1>'
+            self.serial_device.write(b'<b 1>')
         else:
-            code = '<b 0>'
-        self.serial_device.write(code.encode())
+            self.serial_device.write(b'<b 0>')
 
     @property
     def display(self):
         """
         Enable or disable the display. True to enable the display. False to disable the display.
         """
-        return self.displaycontrol & _LCD_DISPLAYON == _LCD_DISPLAYON
+        return self._display
 
     @display.setter
     def display(self, enable):
+        self._display = enable
         if enable:
-            code = '<b 1>'
+            self.serial_device.write(b'<d 1>')
         else:
-            code = '<b 0>'
-        self.serial_device.write(code.encode())
+            self.serial_device.write(b'<d 0>')
 
     @property
     def message(self):
@@ -143,21 +131,6 @@ class Serial_VFD:
         position from the left for left to right text and from
         the right for right to left text. Resets cursor column
         and row to (0,0) after displaying the message.
-
-        The following example displays, "Hello, world!" on the LCD.
-
-        .. code-block:: python
-
-            import time
-            import board
-            import busio
-            import adafruit_character_lcd.character_lcd_i2c as character_lcd
-
-            i2c = busio.I2C(board.SCL, board.SDA)
-            lcd = character_lcd.Character_LCD_I2C(i2c, 16, 2)
-
-            lcd.message = "Hello, world!"
-            time.sleep(5)
         """
         return self._message
 
@@ -177,7 +150,7 @@ class Serial_VFD:
                 # If cursor_position is set then starts at the specified location for
                 # LEFT_TO_RIGHT. If RIGHT_TO_LEFT cursor_position is determined from right.
                 # allows for cursor_position to work in RIGHT_TO_LEFT mode
-                if self.displaymode & _LCD_ENTRYLEFT > 0:
+                if self._direction == self.LEFT_TO_RIGHT:
                     col = self.column
                 else:
                     col = self.columns - 1 - self.column
@@ -190,7 +163,7 @@ class Serial_VFD:
                 # which case start on the opposite side of the display if cursor_position
                 # is (0,0) or not set. Start second line at same column as first line when
                 # cursor_position is set
-                if self.displaymode & _LCD_ENTRYLEFT > 0:
+                if self._direction == self.LEFT_TO_RIGHT:
                     col = self.column * self._column_align
                 else:
                     if self._column_align:
@@ -200,57 +173,21 @@ class Serial_VFD:
                 self.cursor_position(col, line)
             # Write string to display
             else:
-                self._write8(ord(character), True)
+                code = '<p ' + character + '>'
+                self.serial_device.write(code.encode())
+
         # reset column and row to (0,0) after message is displayed
         self.column, self.row = 0, 0
 
     def move_left(self):
         """Moves displayed text left one column.
-
-        The following example scrolls a message to the left off the screen.
-
-        .. code-block:: python
-
-            import time
-            import board
-            import busio
-            import adafruit_character_lcd.character_lcd_i2c as character_lcd
-
-            i2c = busio.I2C(board.SCL, board.SDA)
-            lcd = character_lcd.Character_LCD_I2C(i2c, 16, 2)
-
-            scroll_message = "<-- Scroll"
-            lcd.message = scroll_message
-            time.sleep(2)
-            for i in range(len(scroll_message)):
-                lcd.move_left()
-                time.sleep(0.5)
         """
-        self._write8(_LCD_CURSORSHIFT | _LCD_DISPLAYMOVE | _LCD_MOVELEFT)
+        self.serial_device.write(b's l')
 
     def move_right(self):
         """Moves displayed text right one column.
-
-        The following example scrolls a message to the right off the screen.
-
-        .. code-block:: python
-
-            import time
-            import board
-            import busio
-            import adafruit_character_lcd.character_lcd_i2c as character_lcd
-
-            i2c = busio.I2C(board.SCL, board.SDA)
-            lcd = character_lcd.Character_LCD_I2C(i2c, 16, 2)
-
-            scroll_message = "Scroll -->"
-            lcd.message = scroll_message
-            time.sleep(2)
-            for i in range(len(scroll_message) + 16):
-                lcd.move_right()
-                time.sleep(0.5)
         """
-        self._write8(_LCD_CURSORSHIFT | _LCD_DISPLAYMOVE | _LCD_MOVERIGHT)
+        self.serial_device.write(b's r')
 
     @property
     def text_direction(self):
@@ -258,22 +195,6 @@ class Serial_VFD:
         left side of the LCD, set ``text_direction = LEFT_TO_RIGHT``. To display the text right
         to left beginning on the right size of the LCD, set ``text_direction = RIGHT_TO_LEFT``.
         Text defaults to displaying from left to right.
-
-        The following example displays "Hello, world!" from right to left.
-
-        .. code-block:: python
-
-            import time
-            import board
-            import busio
-            import adafruit_character_lcd.character_lcd_i2c as character_lcd
-
-            i2c = busio.I2C(board.SCL, board.SDA)
-            lcd = character_lcd.Character_LCD_I2C(i2c, 16, 2)
-
-            lcd.text_direction = lcd.RIGHT_TO_LEFT
-            lcd.message = "Hello, world!"
-            time.sleep(5)
         """
         return self._direction
 
@@ -287,65 +208,27 @@ class Serial_VFD:
 
     def _left_to_right(self):
         # Displays text from left to right on the LCD.
-        self.displaymode |= _LCD_ENTRYLEFT
-        self._write8(_LCD_ENTRYMODESET | self.displaymode)
+        self.serial_device.write(b'r 0')
 
     def _right_to_left(self):
         # Displays text from right to left on the LCD.
-        self.displaymode &= ~_LCD_ENTRYLEFT
-        self._write8(_LCD_ENTRYMODESET | self.displaymode)
+        self.serial_device.write(b'r 1')
 
     def create_char(self, location, pattern):
-        """
-        Fill one of the first 8 CGRAM locations with custom characters.
-        The location parameter should be between 0 and 7 and pattern should
-        provide an array of 8 bytes containing the pattern. E.g. you can easily
-        design your custom character at http://www.quinapalus.com/hd44780udg.html
-        To show your custom character use, for example, ``lcd.message = "\x01"``
+        pass
+        # """
+        # Fill one of the first 8 CGRAM locations with custom characters.
+        # The location parameter should be between 0 and 7 and pattern should
+        # provide an array of 8 bytes containing the pattern. E.g. you can easily
+        # design your custom character at http://www.quinapalus.com/hd44780udg.html
+        # To show your custom character use, for example, ``lcd.message = "\x01"``
 
-        :param location: integer in range(8) to store the created character
-        :param ~bytes pattern: len(8) describes created character
+        # :param location: integer in range(8) to store the created character
+        # :param ~bytes pattern: len(8) describes created character
 
-        """
-        # only position 0..7 are allowed
-        location &= 0x7
-        self._write8(_LCD_SETCGRAMADDR | (location << 3))
-        for i in range(8):
-            self._write8(pattern[i], char_mode=True)
-
-    def _write8(self, value, char_mode=False):
-        # Sends 8b ``value`` in ``char_mode``.
-        # :param value: bytes
-        # :param char_mode: character/data mode selector. False (default) for
-        # data only, True for character bits.
-        #  one ms delay to prevent writing too quickly.
-        time.sleep(0.001)
-        #  set character/data bit. (charmode = False)
-        self.reset.value = char_mode
-        # WRITE upper 4 bits
-        self.dl4.value = ((value >> 4) & 1) > 0
-        self.dl5.value = ((value >> 5) & 1) > 0
-        self.dl6.value = ((value >> 6) & 1) > 0
-        self.dl7.value = ((value >> 7) & 1) > 0
-        #  send command
-        self._pulse_enable()
-        # WRITE lower 4 bits
-        self.dl4.value = (value & 1) > 0
-        self.dl5.value = ((value >> 1) & 1) > 0
-        self.dl6.value = ((value >> 2) & 1) > 0
-        self.dl7.value = ((value >> 3) & 1) > 0
-        self._pulse_enable()
-
-    def _pulse_enable(self):
-        # Pulses (lo->hi->lo) to send commands.
-        self.enable.value = False
-        # 1microsec pause
-        time.sleep(0.0000001)
-        self.enable.value = True
-        time.sleep(0.0000001)
-        self.enable.value = False
-        time.sleep(0.0000001)
-
-
-
-
+        # """
+        # # only position 0..7 are allowed
+        # location &= 0x7
+        # self._write8(_LCD_SETCGRAMADDR | (location << 3))
+        # for i in range(8):
+        # self._write8(pattern[i], char_mode=True)
