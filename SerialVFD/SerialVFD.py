@@ -5,22 +5,12 @@ class SerialVFD(object):
     LEFT_TO_RIGHT = 0
     RIGHT_TO_LEFT = 1
 
-    def __init__(self, serial_device, columns, lines):
+    def __init__(self, tx_queue, columns, lines):
 
         self.columns = columns
         self.lines = lines
 
-        #  save pin numbers
-        self.serial_device = serial_device
-
-        # Initialise the display
-        awake = False
-        while not awake:
-            self.serial_device.write(b'<?>')
-            ch = self.serial_device.read()
-            print(ch)
-            awake = (ch == '!'.encode())
-            time.sleep(1)
+        self.tx_queue = tx_queue
 
         self._cursoron = False
         self._cursorblink = False
@@ -40,13 +30,13 @@ class SerialVFD(object):
     def home(self):
         """Moves the cursor "home" to position (0, 0).
         """
-        self.serial_device.write(b'<h>')
+        self.tx_queue.put('h')
         time.sleep(0.003)
 
     def clear(self):
         """Clears everything displayed on the LCD.
         """
-        self.serial_device.write(b'<c>')
+        self.tx_queue.put('c')
         time.sleep(0.003)
 
     @property
@@ -73,9 +63,9 @@ class SerialVFD(object):
     def cursor(self, show):
         self._cursoron = show
         if show:
-            self.serial_device.write(b'<k 1>')
+            self.tx_queue.put('k 1')
         else:
-            self.serial_device.write(b'<k 0>')
+            self.tx_queue.put('k 0')
 
     def cursor_position(self, column, row):
         """Move the cursor to position ``column``, ``row`` for the next
@@ -92,8 +82,7 @@ class SerialVFD(object):
             column = self.columns - 1
 
         # Set location 
-        code = '<m ' + str(column) + ' ' + str(row) + '>'
-        self.serial_device.write(code.encode())
+        self.tx_queue.put('m ' + str(column) + ' ' + str(row))
 
         # Update self.row and self.column to match setter
         self.row = row
@@ -110,9 +99,9 @@ class SerialVFD(object):
     def blink(self, blink):
         self._cursorblink = blink
         if blink:
-            self.serial_device.write(b'<b 1>')
+            self.tx_queue.put('b 1')
         else:
-            self.serial_device.write(b'<b 0>')
+            self.tx_queue.put('b 0')
 
     @property
     def display(self):
@@ -125,9 +114,9 @@ class SerialVFD(object):
     def display(self, enable):
         self._display = enable
         if enable:
-            self.serial_device.write(b'<d 1>')
+            self.tx_queue.put('d 1')
         else:
-            self.serial_device.write(b'<d 0>')
+            self.tx_queue.put('d 0')
 
     @property
     def message(self):
@@ -179,8 +168,7 @@ class SerialVFD(object):
                 self.cursor_position(col, line)
             # Write string to display
             else:
-                code = '<p ' + character + '>'
-                self.serial_device.write(code.encode())
+                self.tx_queue.put('p ' + character)
 
         # reset column and row to (0,0) after message is displayed
         self.column, self.row = 0, 0
@@ -188,12 +176,12 @@ class SerialVFD(object):
     def move_left(self):
         """Moves displayed text left one column.
         """
-        self.serial_device.write(b'<s l>')
+        self.tx_queue.put('s l')
 
     def move_right(self):
         """Moves displayed text right one column.
         """
-        self.serial_device.write(b'<s r>')
+        self.tx_queue.put('s r')
 
     @property
     def text_direction(self):
@@ -214,11 +202,11 @@ class SerialVFD(object):
 
     def _left_to_right(self):
         # Displays text from left to right on the LCD.
-        self.serial_device.write(b'<r 0>')
+        self.tx_queue.put('r 0')
 
     def _right_to_left(self):
         # Displays text from right to left on the LCD.
-        self.serial_device.write(b'<r 1>')
+        self.tx_queue.put('r 1')
 
     def create_char(self, location, pattern):
         pass

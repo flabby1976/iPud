@@ -2,10 +2,79 @@ import serial
 import SerialVFD
 import time
 
-ser = serial.Serial(port='/dev/ttyUSB0')
+import queue
+from threading import Thread
+
+Tx_queue = queue.Queue()
+Rx_queue = queue.Queue()
+
+
+def worker():
+    start_marker = '<'
+    end_marker = '>'
+    data_started = False
+    data_buf = ""
+    message_complete = False
+
+    # This will have the side effect of reseting the arduino
+    serial_port = serial.Serial(port='/dev/ttyUSB0')
+    # waitForArduino()
+    # time.sleep(2)
+    awake = False
+    while not awake:
+        serial_port.write(b'<?>')
+        ch = serial_port.read()
+        print(ch)
+        awake = (ch == '!'.encode())
+        time.sleep(1)
+
+    while True:
+        try:
+            string_to_send = Tx_queue.get()
+        except queue.Empty:
+            pass
+        else:
+            string_with_markers = start_marker
+            string_with_markers += string_to_send
+            string_with_markers += end_marker
+            serial_port.write(string_with_markers.encode('utf-8'))
+
+        if serial_port.inWaiting() > 0 and not message_complete:
+            x = serial_port.read().decode("utf-8")  # decode needed for Python3
+
+            if data_started:
+                if x != end_marker:
+                    data_buf = data_buf + x
+                else:
+                    data_started = False
+                    message_complete = True
+            elif x == start_marker:
+                data_buf = ''
+                data_started = True
+
+        if message_complete:
+            try:
+                Rx_queue.put(data_buf)
+                message_complete = False
+            except queue.Full:
+                pass
+
+
+def consumer():
+    while True:
+        try:
+            mess = Rx_queue.get()
+        except queue.Empty:
+            pass
+        else:
+            print(mess)
+
 
 # Initialise the lcd class
-lcd = SerialVFD.SerialVFD( ser, 20, 2)
+lcd = SerialVFD.SerialVFD(Tx_queue, 20, 2)
+
+serial_thread = Thread(target=worker)
+serial_thread.start()
 
 # Print a two line message
 lcd.message = "Hello\nCircuitPython"
