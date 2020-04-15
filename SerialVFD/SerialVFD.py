@@ -2,7 +2,6 @@ import time
 
 
 class SerialVFD(object):
-
     LEFT_TO_RIGHT = 0
     RIGHT_TO_LEFT = 1
 
@@ -17,16 +16,16 @@ class SerialVFD(object):
         # Initialise the display
         awake = False
         while not awake:
-          self.serial_device.write(b'<?>')
-          ch = self.serial_device.read()
-          print(ch)
-          awake = (ch == '!'.encode())
-          time.sleep(1)
+            self.serial_device.write(b'<?>')
+            ch = self.serial_device.read()
+            print(ch)
+            awake = (ch == '!'.encode())
+            time.sleep(1)
 
         self._cursoron = False
         self._cursorblink = False
         self._display = True
-        
+
         self.clear()
 
         self._message = None
@@ -91,7 +90,7 @@ class SerialVFD(object):
         # Clamp to last column of display
         if column >= self.columns:
             column = self.columns - 1
-        
+
         # Set location 
         code = '<m ' + str(column) + ' ' + str(row) + '>'
         self.serial_device.write(code.encode())

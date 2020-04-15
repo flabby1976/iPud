@@ -87,7 +87,6 @@ void setup() {
   // setup the serial port for comms with Pi
   Serial.begin (9600);
 
-  Serial.println(">");
 } 
 
 
