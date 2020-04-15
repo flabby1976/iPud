@@ -54,7 +54,7 @@ def worker():
 
         if message_complete:
             try:
-                Rx_queue.put(data_buf)
+                Rx_queue.put_nowait(data_buf)
                 message_complete = False
             except queue.Full:
                 pass
