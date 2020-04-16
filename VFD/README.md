@@ -8,3 +8,5 @@ Starting from Raspbian Lite, need to install ```python3-spidev``` which is not i
 sudo apt-get install python3-spidev
 ```
 
+Big numbers from here - https://github.com/RalphBacon/LCD_Big_digits
+
