@@ -1,6 +1,7 @@
 import serial
 import SerialVFD
 import time
+import logging
 
 import queue
 from threading import Thread
@@ -8,29 +9,33 @@ from threading import Thread
 Tx_queue = queue.Queue()
 Rx_queue = queue.Queue()
 
+format = "%(asctime)s: %(message)s"
+logging.basicConfig(format=format, level=logging.INFO,
+                        datefmt="%H:%M:%S")
 
 def worker():
     start_marker = '<'
+
     end_marker = '>'
     data_started = False
     data_buf = ""
     message_complete = False
 
     # This will have the side effect of reseting the arduino
-    serial_port = serial.Serial(port='/dev/ttyUSB0')
-    # waitForArduino()
-    # time.sleep(2)
+    serial_port = serial.Serial(port='/dev/ttyUSB0', timeout=0)
+
+    # waitForArduino
     awake = False
     while not awake:
+        logging.info('<?>')
         serial_port.write(b'<?>')
         ch = serial_port.read()
-        print(ch)
+        logging.info(ch)
         awake = (ch == '!'.encode())
-        time.sleep(1)
 
     while True:
         try:
-            string_to_send = Tx_queue.get()
+            string_to_send = Tx_queue.get_nowait()
         except queue.Empty:
             pass
         else:
@@ -39,9 +44,8 @@ def worker():
             string_with_markers += end_marker
             serial_port.write(string_with_markers.encode('utf-8'))
 
-        if serial_port.inWaiting() > 0 and not message_complete:
-            x = serial_port.read().decode("utf-8")  # decode needed for Python3
-
+        while serial_port.inWaiting() > 0 and not message_complete:
+            x = serial_port.read().decode("utf-8")
             if data_started:
                 if x != end_marker:
                     data_buf = data_buf + x
@@ -54,6 +58,7 @@ def worker():
 
         if message_complete:
             try:
+#                logging.info(data_buf)
                 Rx_queue.put_nowait(data_buf)
                 message_complete = False
             except queue.Full:
@@ -63,27 +68,34 @@ def worker():
 def consumer():
     while True:
         try:
-            mess = Rx_queue.get()
+            mess = Rx_queue.get_nowait()
+            logging.info(mess)
         except queue.Empty:
             pass
-        else:
-            print(mess)
 
 
 # Initialise the lcd class
 lcd = SerialVFD.SerialVFD(Tx_queue, 20, 2)
 
-serial_thread = Thread(target=worker)
+serial_thread = Thread(target=worker, daemon=True)
 serial_thread.start()
+print_thread = Thread(target=consumer, daemon=True)
+print_thread.start()
+
+time.sleep(5)
 
 # Print a two line message
 lcd.message = "Hello\nCircuitPython"
+print('*')
 # Wait 5s
 time.sleep(5)
 lcd.clear()
+print('*')
 # Print two line message right to left
 lcd.text_direction = lcd.RIGHT_TO_LEFT
+print('*')
 lcd.message = "Hello\nCircuitPython"
+print('*')
 # Wait 5s
 time.sleep(5)
 # Return text direction to left to right
@@ -129,3 +141,4 @@ lcd.clear()
 lcd.message = "Going to sleep\nCya later!"
 time.sleep(2)
 lcd.display = False
+time.sleep(2)
