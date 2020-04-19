@@ -83,13 +83,14 @@ def consumer():
             mess = Rx_queue.get_nowait().split()
             mess0 = switcher.get(mess[0])
 
-            if mess[0] == 'k':
-                knob_position = int(mess[2])
-                new_volume = start_volume + knob_position - start_position
-                lcd.message = "Volume: " + str(new_volume)
-                sq.set_volume(new_volume)
-            else:
-                lcd.message = mess0 + mess[1] + ' ' + mess[2]
+            if mess0:
+                if mess[0] == 'k':
+                    knob_position = int(mess[2])
+                    new_volume = start_volume + knob_position - start_position
+                    lcd.message = "Volume: " + str(new_volume)
+                    sq.set_volume(new_volume)
+                else:
+                    lcd.message = mess0 + mess[1] + ' ' + mess[2]
 
         except queue.Empty:
             start_volume = sq.get_volume()
