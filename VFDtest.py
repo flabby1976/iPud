@@ -9,9 +9,10 @@ from threading import Thread
 Tx_queue = queue.Queue()
 Rx_queue = queue.Queue()
 
-format = "%(asctime)s: %(message)s"
-logging.basicConfig(format=format, level=logging.INFO,
-                        datefmt="%H:%M:%S")
+fmt = "%(asctime)s: %(message)s"
+logging.basicConfig(format=fmt, level=logging.INFO,
+                    datefmt="%H:%M:%S")
+
 
 def worker():
     start_marker = '<'
@@ -58,7 +59,7 @@ def worker():
 
         if message_complete:
             try:
-#                logging.info(data_buf)
+                # logging.info(data_buf)
                 Rx_queue.put_nowait(data_buf)
                 message_complete = False
             except queue.Full:
