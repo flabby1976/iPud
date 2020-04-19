@@ -3,8 +3,10 @@ import SerialVFD
 import time
 import logging
 
+import queue
+from threading import Thread
+
 from pylms.server import Server
-from pylms.player import Player
 
 sc = Server(hostname="192.168.2.75")
 sc.connect()
@@ -15,18 +17,13 @@ print("Version: %s" % sc.get_version())
 print(sc.get_players())
 sq = sc.get_player(b'raspberrypi')
 
-start_volume = sq.get_volume()
-print(start_volume)
-
-import queue
-from threading import Thread
-
 Tx_queue = queue.Queue()
 Rx_queue = queue.Queue()
 
 logging_format = "%(asctime)s: %(message)s"
 logging.basicConfig(format=logging_format, level=logging.INFO,
                     datefmt="%H:%M:%S")
+
 
 def worker():
     start_marker = '<'
@@ -70,6 +67,13 @@ def worker():
 
 
 def consumer():
+
+    start_volume = sq.get_volume()
+    print("Start Volume: %d" % start_volume)
+
+    start_position = 0
+    knob_position = 0
+
     switcher = {
         'b': "Button ",
         'k': "knob "
@@ -78,12 +82,18 @@ def consumer():
         try:
             mess = Rx_queue.get_nowait().split()
             mess0 = switcher.get(mess[0])
-            if mess0:
-                lcd.message = mess0 + mess[1] + ' ' + mess[2]
+
             if mess[0] == 'k':
-                new_volume = start_volume + int(mess[2])
+                knob_position = int(mess[2])
+                new_volume = start_volume + knob_position - start_position
+                lcd.message = "Volume: " + str(new_volume)
                 sq.set_volume(new_volume)
+            else:
+                lcd.message = mess0 + mess[1] + ' ' + mess[2]
+
         except queue.Empty:
+            start_volume = sq.get_volume()
+            start_position = knob_position
             time.sleep(0.1)
 
 
@@ -96,12 +106,10 @@ serial_port = serial.Serial(port='/dev/ttyUSB0', timeout=0)
 # waitForArduino
 awake = False
 while not awake:
-#    logging.info('<?>')
     serial_port.write(b'<?>')
     ch = serial_port.read()
     logging.info(ch)
     awake = (ch == '!'.encode())
-#    time.sleep(1)
 
 lcd.clear()
 lcd.message = "I'm ready!\nFAV1 FAV2  FAV3 FAV4"
