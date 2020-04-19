@@ -39,6 +39,8 @@ const byte numChars = 64;
 char receivedChars[numChars];
 boolean newData = false;
 
+boolean conn = false;
+
 // Define the bit patters for each of our custom chars. These
 // are 5 bits wide and 8 dots deep
 uint8_t custChar[8][8] = {
@@ -118,24 +120,30 @@ void setup() {
     vfd.createChar(cnt, custChar[cnt]);
   }
 
-//  Dummy clock splash screen!
-  vfd.clear();
-  vfd.setCursor(8, 0);
-  vfd.print((char)161);
-  vfd.setCursor(8, 1);
-  vfd.print((char)161);
+vfd.clear();
+vfd.setCursor(0, 0);
+vfd.print("Restarting");
+vfd.setCursor(0, 1);
+vfd.print("Please wait!");
 
-  vfd.setCursor(17, 0);
-  vfd.print("PM");
-
-  vfd.setCursor(17, 1);
-  vfd.print("55");
-
-  printBigNum(2, 0, 0);
-  printBigNum(3, 4, 0);
-  printBigNum(5, 9, 0);
-  printBigNum(3, 13, 0);
-
+////  Dummy clock splash screen!
+//  vfd.clear();
+//  vfd.setCursor(8, 0);
+//  vfd.print((char)161);
+//  vfd.setCursor(8, 1);
+//  vfd.print((char)161);
+//
+//  vfd.setCursor(17, 0);
+//  vfd.print("PM");
+//
+//  vfd.setCursor(17, 1);
+//  vfd.print("55");
+//
+//  printBigNum(2, 0, 0);
+//  printBigNum(3, 4, 0);
+//  printBigNum(5, 9, 0);
+//  printBigNum(3, 13, 0);
+//
 
   rencoder.enableInternalRotaryPullups(); 
   rencoder.setRotaryLimits(-(rotaryMaximum - 1), rotaryMaximum, rotaryWrapMode);
@@ -145,6 +153,15 @@ void setup() {
   
   // setup the serial port for comms with Pi
   Serial.begin (9600);
+
+  while(conn = false) {
+    recvWithStartEndMarkers();
+    if (newData == true){
+      handleVFDcmd(receivedChars);
+      newData = false;
+    }
+  }
+  
 
 } 
 
@@ -310,6 +327,7 @@ void handleVFDcmd(char *cmd){
       }
       case '?': { // ping from client to make sure I'm awake
         Serial.print("<!>");
+        conn = true ;
         break;
       }
       default:
