@@ -1,7 +1,11 @@
 import serial
 import time
 import queue
+
+import sys
+sys.path.append('../')
 import SerialVFD
+
 from threading import Thread
 
 
@@ -19,12 +23,13 @@ class FrontPanel(object):
         # This will have the side effect of reseting the Arduino ...
         self._serial_port = serial.Serial(port='/dev/ttyUSB0', timeout=0)
         # ... so need to wait a couple of seconds before trying to access the port
-        time.sleep(2)
-
+ #       time.sleep(2)
+        print('trying')
         awake = False
         while not awake:
             self._serial_port.write(b'<?>')
             ch = self._serial_port.read()
+            print(ch)
             awake = (ch == '!'.encode())
 
         self.lcd.clear()
@@ -49,7 +54,7 @@ class FrontPanel(object):
                 string_to_send = self._Tx_queue.get_nowait()
             except queue.Empty:
                 pass
-            #            time.sleep(0.1)
+                time.sleep(0.05)
             else:
                 string_with_markers = start_marker
                 string_with_markers += string_to_send
@@ -81,7 +86,7 @@ if __name__ == "__main__":
 
     fp = FrontPanel()
 
-    time.sleep(5)
+ #   time.sleep(10)
 
     print("now")
 
@@ -90,8 +95,9 @@ if __name__ == "__main__":
 
     while True:
         try:
-            mess = fp.Rx_queue.get_nowait().split()
+            mess = fp.Rx_queue.get_nowait()
             print(mess)
-            fp.lcd.message = "Well hello!!\n" + mess
+#            fp.lcd.clear()
+ #           fp.lcd.message = "Well hello!!\n" + mess
         except queue.Empty:
             time.sleep(0.1)
