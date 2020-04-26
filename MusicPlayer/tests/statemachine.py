@@ -1,34 +1,16 @@
-# from transitions import Machine
 import transitions
 import re
-# import json
 
 from pylms.server import Server
-# from pylms.player import Player
-
-
-class RegexDict(dict):
-    def get_matching(self, event):
-        for key in self:
-            pp = re.search(key, event)
-            if pp:
-                resp = self[key]
-                for t in range(len(pp.groups())):
-                    ss = pp.group(t+1)
-                    rr = '$'+str(t+1)
-                    resp = resp.replace(rr, ss)
-                resp = resp.split(" ")
-                return resp[0], resp[1:]
-        return None
 
 
 class MusicPlayer(object):
-    def __init__(self):
+    def __init__(self, name=None, server=None):
         self.state = None
 
         self.knob_postion = 50
 
-        self.sc = Server(hostname="192.168.2.75")
+        self.sc = Server(hostname=server)
         self.sc.connect()
 
         print("Logged in: %s" % self.sc.logged_in)
@@ -36,9 +18,9 @@ class MusicPlayer(object):
 
         print(self.sc.get_players())
 
-        self.sq = self.sc.get_player(b'raspberrypi')
+        self.sq = self.sc.get_player(name)
         self.sq.set_volume(50)
-        self.sq.stop()
+#        self.sq.stop()
 
     def set_vol(self, *args):
         print('Setting volume knob to ' + args[0])
@@ -81,7 +63,22 @@ class MusicPlayer(object):
         pass
 
 
-mp = MusicPlayer()
+class RegexDict(dict):
+    def get_matching(self, event):
+        for key in self:
+            pp = re.search(key, event)
+            if pp:
+                resp = self[key]
+                for t in range(len(pp.groups())):
+                    ss = pp.group(t+1)
+                    rr = '$'+str(t+1)
+                    resp = resp.replace(rr, ss)
+                resp = resp.split(" ")
+                return resp[0], resp[1:]
+        return None
+
+
+mp = MusicPlayer(name=b'raspberrypi', server="192.168.2.75")
 
 states = ['idle', 'tuning', 'playing', 'paused', 'stopped']
 
@@ -121,11 +118,11 @@ keymaps = {
 # print(json.dumps(keymaps, indent=4))
 
 key_presses = [
-    'b 3 s',
+#    'b 3 s',
     'k 1 40',
-    # 'b k s',
-    # 'b k s',
-    # 'b k l',
+    'b k s',
+    'b k s',
+    'b k l',
     # 'b k l',
     # 'k 1 45',
     'k 1 50'
@@ -137,14 +134,19 @@ for key_press in key_presses:
 
     rrr = RegexDict(keymaps[mp.state]).get_matching(key_press)
 
-    cmd = rrr[0]
-    arg = rrr[1]
+    print(rrr)
+    if rrr:
 
-    method_to_call = getattr(mp, cmd)
+        cmd = rrr[0]
+        arg = rrr[1]
 
-    print(key_press, ' -> ', cmd, arg)
+        method_to_call = getattr(mp, cmd)
 
-    try:
-        method_to_call(*arg)
-    except transitions.core.MachineError as e:
-        print('Oops! ' + str(e))
+        print(key_press, ' -> ', cmd, arg)
+
+        try:
+            method_to_call(*arg)
+        except transitions.core.MachineError as e:
+            print('Oops! ' + str(e))
+    else:
+        print('No keymap entry for '+key_press+' in state '+mp.state)
