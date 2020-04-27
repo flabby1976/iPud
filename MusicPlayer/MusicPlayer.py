@@ -98,7 +98,7 @@ class MusicPlayer(transitions.Machine):
             except transitions.core.MachineError as e:
                 print('Oops! ' + str(e))
         else:
-            print('No keymap entry for '+key_press+' in state '+mp.state)
+            print('No keymap entry for '+key_press+' in state '+self.state)
 
     def set_vol(self, *args):
         print('Setting volume knob to ' + args[0])

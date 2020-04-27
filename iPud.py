@@ -5,7 +5,10 @@ from MusicPlayer import MusicPlayer
 import queue
 
 
-mp = MusicPlayer(name=b'raspberrypi', server="192.168.2.75")
+radio = b'Squeezebox Radio'
+radio = b'raspberrypi'
+
+mp = MusicPlayer(name=radio, server="192.168.2.75")
 
 fp = FrontPanel()
 
