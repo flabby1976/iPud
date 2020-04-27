@@ -2,9 +2,7 @@ import serial
 import time
 import queue
 
-import sys
-sys.path.append('../')
-import SerialVFD
+from .SerialVFD import SerialVFD
 
 from threading import Thread
 
@@ -18,12 +16,11 @@ class FrontPanel(object):
         self.Rx_queue = queue.Queue()
 
         # Initialise the lcd class
-        self.lcd = SerialVFD.SerialVFD(self._Tx_queue, 20, 2)
+        self.lcd = SerialVFD(self._Tx_queue, 20, 2)
 
         # This will have the side effect of reseting the Arduino ...
         self._serial_port = serial.Serial(port='/dev/ttyUSB0', timeout=0)
-        # ... so need to wait a couple of seconds before trying to access the port
- #       time.sleep(2)
+
         print('trying')
         awake = False
         while not awake:
@@ -31,6 +28,7 @@ class FrontPanel(object):
             ch = self._serial_port.read()
             print(ch)
             awake = (ch == '!'.encode())
+            time.sleep(.2)
 
         self.lcd.clear()
         self.lcd.message = "I'm ready!\niPud V0.1"
@@ -86,10 +84,6 @@ if __name__ == "__main__":
 
     fp = FrontPanel()
 
- #   time.sleep(10)
-
-    print("now")
-
     fp.lcd.clear()
     fp.lcd.message = "Well hello!!\nHow are YOU doing?"
 
@@ -97,7 +91,6 @@ if __name__ == "__main__":
         try:
             mess = fp.Rx_queue.get_nowait()
             print(mess)
-#            fp.lcd.clear()
- #           fp.lcd.message = "Well hello!!\n" + mess
+
         except queue.Empty:
-            time.sleep(0.1)
+            time.sleep(0.05)

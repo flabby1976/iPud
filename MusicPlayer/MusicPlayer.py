@@ -25,6 +25,8 @@ class MusicPlayer(transitions.Machine):
 
         self.define_state_machine()
 
+        self.keymaps = None
+
         self.knob_postion = 50
 
         self.sc = Server(hostname=server)
@@ -76,7 +78,6 @@ class MusicPlayer(transitions.Machine):
                 'b k l': 'play'
             }
         }
-
 
     def do_cmd(self, key_press):
         print(key_press)
