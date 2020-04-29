@@ -25,8 +25,6 @@ class MusicPlayer(transitions.Machine):
 
         self.define_state_machine()
 
-        self.keymaps = None
-
         self.knob_postion = 50
 
         self.sc = Server(hostname=server)
@@ -80,26 +78,29 @@ class MusicPlayer(transitions.Machine):
         }
 
     def do_cmd(self, key_press):
-        print(key_press)
-        print('Current state: ' + self.state)
-        rrr = RegexDict(self.keymaps[self.state]).get_matching(key_press)
+        if key_press:
+            print('key press is:' + key_press)
+            print('Current state: ' + self.state)
+            print('Current keymaps: ')
+            print(self.keymaps[self.state])
+            rrr = RegexDict(self.keymaps[self.state]).get_matching(key_press)
 
-        print(rrr)
-        if rrr:
+            print(rrr)
+            if rrr:
 
-            cmd = rrr[0]
-            arg = rrr[1]
+                cmd = rrr[0]
+                arg = rrr[1]
 
-            method_to_call = getattr(self, cmd)
+                method_to_call = getattr(self, cmd)
 
-            print(key_press, ' -> ', cmd, arg)
+                print(key_press, ' -> ', cmd, arg)
 
-            try:
-                method_to_call(*arg)
-            except transitions.core.MachineError as e:
-                print('Oops! ' + str(e))
-        else:
-            print('No keymap entry for '+key_press+' in state '+self.state)
+                try:
+                    method_to_call(*arg)
+                except transitions.core.MachineError as e:
+                    print('Oops! ' + str(e))
+            else:
+                print('No keymap entry for '+key_press+' in state '+self.state)
 
     def set_vol(self, *args):
         print('Setting volume knob to ' + args[0])

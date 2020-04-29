@@ -2,7 +2,7 @@ import serial
 import time
 import queue
 
-from .SerialVFD import SerialVFD
+from SerialVFD import SerialVFD
 
 from threading import Thread
 
