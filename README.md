@@ -6,6 +6,7 @@ Uses [Raspberry Pi Zero W](https://www.raspberrypi.org/products/raspberry-pi-zer
 For FrontPanel need -
 
 [pySerial](https://pyserial.readthedocs.io/en/latest/) :
+
 `sudo apt-get install python3-serial`
 
 SerialVFD: 
