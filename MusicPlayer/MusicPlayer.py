@@ -1,14 +1,22 @@
 from pylms.server import Server
 import transitions
 import re
+from threading import Thread
+import telnetlib
+import queue
+import urllib.parse
+import json
 
 
 class RegexDict(dict):
     def get_matching(self, event):
         for key in self:
+            print('trying key: ', key)
             pp = re.search(key, event)
             if pp:
                 resp = self[key]
+                if not resp:
+                    return None
                 for t in range(len(pp.groups())):
                     ss = pp.group(t+1)
                     rr = '$'+str(t+1)
@@ -18,97 +26,112 @@ class RegexDict(dict):
         return None
 
 
+def my_quote(text):
+    return urllib.parse.quote(text, encoding='utf8')
+
+
+def my_unquote(text):
+    return urllib.parse.unquote(text, encoding='utf8')
+
+
 class MusicPlayer(transitions.Machine):
 
-    def __init__(self, name=None, server=None):
+    def __init__(self, my_name=None, server_ip=None, display=None):
+
         transitions.Machine.__init__(self, states=[])
+
+        self.display = display
+        self.server_ip = server_ip
+        
+        self.keymaps = None
 
         self.define_state_machine()
 
+        self.Rx_queue = queue.Queue()
+
         self.knob_postion = 50
 
-        self.sc = Server(hostname=server)
-        self.sc.connect()
+        server = Server(hostname=self.server_ip)
+        server.connect()
 
-        print("Logged in: %s" % self.sc.logged_in)
-        print("Version: %s" % self.sc.get_version())
+        print("Logged in: %s" % server.logged_in)
+        print("Version: %s" % server.get_version())
 
-        print(self.sc.get_players())
+        self.my_player = server.get_player(my_name)
+        self.my_player.set_volume(50)
+        self.my_player.stop()
 
-        self.sq = self.sc.get_player(name)
-        self.sq.set_volume(50)
-        self.sq.stop()
+        print('My id is: ' + self.my_player.ref)
+
+        # start the thread to manage to telnet link back to LMS
+        telnet_thread = Thread(target=self._telnet_worker, daemon=True)
+        telnet_thread.start()
+
+    def _telnet_worker(self):
+        self.tn = telnetlib.Telnet(host=self.server_ip, port='9090')
+        self.tn.write(b'listen 1\n')
+
+        while True:
+            notification = self.tn.read_until(b'\n')[:-1]
+            notification = my_unquote(notification.decode()).split()
+            # only responds to notifications sent to me!
+            if notification[0] == self.my_player.ref:
+                # only interested in these notifications
+                if notification[1] in ['playlist', 'stop', 'play', 'pause']:
+                    self.Rx_queue.put_nowait(" ".join(notification[1:]))
 
     def define_state_machine(self):
 
-        states = ['idle', 'tuning', 'playing', 'paused', 'stopped']
+        with open('/home/pi/iPud/MusicPlayer/statemachine.json') as json_file:
+            data = json.load(json_file)
+            states = data['states']
+            my_transitions = data['transitions']
+            self.keymaps = data['keymaps']
+
         self.add_states(states)
+        self.add_transitions(my_transitions)
 
-        self.add_transition(trigger='tune', source=['tuning', 'idle', 'playing', 'paused', 'stopped'],
-                            dest='playing', before='tune_it')
-        self.add_transition(trigger='play', source='stopped', dest='playing')
-        self.add_transition(trigger='pause', source='playing', dest='paused')
-        self.add_transition(trigger='stop', source=['playing', 'paused'], dest='stopped')
-        self.add_transition(trigger='unpause', source='paused', dest='playing')
-        self.add_transition(trigger='setvol', source='playing', dest='', after='set_vol')
-
-        self.on_enter_playing('play_it')
-        self.on_enter_paused('pause_it')
-        self.on_exit_paused('unpause_it')
-        self.on_enter_stopped('stop_it')
-
-        self.set_state('idle')
-
-        self.keymaps = {
-            'idle': {
-                'b (\\d) (\\w)': 'tune $1',
-            },
-            'playing': {
-                'k 1 (\\d+)': 'setvol $1',
-                'b (\\d) (\\w)': 'tune $1 $2',
-                'b k s': 'pause',
-                'b k l': 'stop'
-            },
-            'paused': {
-                'b k s': 'unpause'
-            },
-            'stopped': {
-                'b k l': 'play'
-            }
-        }
+        self.set_state(data['initial state'])
 
     def do_cmd(self, key_press):
+
         if key_press:
-            print('key press is:' + key_press)
+            print('key press is: ' + key_press)
             print('Current state: ' + self.state)
-            print('Current keymaps: ')
-            print(self.keymaps[self.state])
-            rrr = RegexDict(self.keymaps[self.state]).get_matching(key_press)
 
-            print(rrr)
-            if rrr:
+            # Decode a key-press to a musicplayer statemachine trigger
+            trigger = RegexDict(self.keymaps[self.state]).get_matching(key_press)
 
-                cmd = rrr[0]
-                arg = rrr[1]
+            # Returns None if no trigger associated with this key-press in this state
+            if trigger:
 
-                method_to_call = getattr(self, cmd)
-
-                print(key_press, ' -> ', cmd, arg)
+                cmd = trigger[0]
+                arg = trigger[1]
 
                 try:
-                    method_to_call(*arg)
-                except transitions.core.MachineError as e:
-                    print('Oops! ' + str(e))
+                    method_to_call = getattr(self, cmd)
+                except AttributeError as e:
+                    print('Oops! Trigger \"' + cmd + '\" is not defined in the state machine')
+                    print(str(e))
+                else:
+                    print(key_press, ' -> ', cmd, arg)
+                    try:
+                        method_to_call(*arg)
+                    except transitions.core.MachineError as e:
+                        print('Oops! Transition \"' + method_to_call + '\" is not allowed in state ' + self.state)
+                        print('Oops! Machine error! :' + str(e))
             else:
-                print('No keymap entry for '+key_press+' in state '+self.state)
+                print('No keymap entry for \"'+key_press+'\" in state '+self.state)
+            print("New state: " + self.state)
+        return
 
     def set_vol(self, *args):
         print('Setting volume knob to ' + args[0])
         new_knob = int(args[0])
-        current_volume = self.sq.get_volume()
+        current_volume = self.my_player.get_volume()
         new_volume = current_volume + new_knob - self.knob_postion
         print(current_volume, new_volume, self.knob_postion)
-        self.sq.set_volume(new_volume)
+        self.my_player.set_volume(new_volume)
         self.knob_postion = new_knob
 
     def tune_it(self, *args):
@@ -116,38 +139,48 @@ class MusicPlayer(transitions.Machine):
         if chan == '':
             chan = '0'
         print('tuning to chan ' + chan)
-        self.sq.playlist_play_index(int(chan))
+        self.my_player.playlist_play_index(int(chan))
 
     # noinspection PyUnusedLocal
     def play_it(self, *args):
-        self.sq.play()
-        print('playing!')
-        pass
+        self.my_player.play()
+        self.disp_it()
 
     # noinspection PyUnusedLocal
     def pause_it(self, *args):
-        self.sq.pause()
+        self.my_player.pause()
         print('paused')
         pass
 
     # noinspection PyUnusedLocal
     def unpause_it(self, *args):
-        self.sq.unpause()
+        self.my_player.unpause()
         print('unpaused')
         pass
 
     # noinspection PyUnusedLocal
     def stop_it(self, *args):
-        self.sq.stop()
+        self.my_player.stop()
         print('stopped')
         pass
+
+    # noinspection PyUnusedLocal
+    def disp_it(self, *args):
+
+        self.display.clear()
+        self.display.message = self.my_player.get_track_title() + "\n" + self.my_player.get_track_artist()
+
+        print('artist: ' + self.my_player.get_track_artist())
+        print('album: ' + self.my_player.get_track_album())
+        print('title: ' + self.my_player.get_track_title())
+        print('current_title: ' + self.my_player.get_track_current_title())
 
 
 if __name__ == "__main__":
 
     import time
 
-    mp = MusicPlayer(name=b'raspberrypi', server="192.168.2.75")
+    mp = MusicPlayer(my_name='raspberrypi', server_ip="192.168.2.75")
 
     key_presses = [
         'b 3 s',
@@ -161,8 +194,6 @@ if __name__ == "__main__":
     ]
 
     for key_p in key_presses:
-
-        print('Current state: ' + mp.state)
 
         time.sleep(2)
 
