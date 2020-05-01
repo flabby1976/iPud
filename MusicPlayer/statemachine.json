@@ -1,0 +1,118 @@
+{
+    "states": [
+        "idle",
+        "tuning",
+        "playing",
+        "paused",
+        "stopped"
+    ],
+	"initial state": "idle",
+    "transitions": [
+        {
+            "trigger": "tune",
+            "source": [
+                "idle",
+                "playing",
+                "paused",
+                "stopped"
+            ],
+            "dest": "playing",
+            "before": "tune_it",
+            "after": "play_it"
+        },
+        {
+            "trigger": "play",
+            "source": [
+                "idle",
+                "stopped"
+            ],
+            "dest": "playing",
+            "after": "play_it"
+        },
+        {
+            "trigger": "pause",
+            "source": "playing",
+            "dest": "paused",
+            "after": "pause_it"
+        },
+        {
+            "trigger": "stop",
+            "source": [
+                "playing",
+                "paused"
+            ],
+            "dest": "stopped",
+            "after": "stop_it"
+        },
+        {
+            "trigger": "unpause",
+            "source": "paused",
+            "dest": "playing",
+            "after": "unpause_it"
+        },
+        {
+            "trigger": "setvol",
+            "source": "playing",
+            "dest": "",
+            "after": "set_vol"
+        },
+        {
+            "trigger": "is_playing",
+            "source": [
+                "idle",
+                "playing",
+                "paused",
+                "stopped"
+            ],
+            "dest": "playing",
+            "after": "disp_it"
+        },
+        {
+            "trigger": "is_paused",
+            "source": "playing",
+            "dest": "paused"
+        },
+        {
+            "trigger": "is_stopped",
+            "source": [
+                "playing",
+                "paused"
+            ],
+            "dest": "stopped"
+        }
+    ],
+    "keymaps": {
+        "idle": {
+            "b (\\d) (\\w)": "tune $1 $2",
+            "playlist newsong": "is_playing",
+            "playlist": null,
+            "play": "is_playing"
+        },
+        "playing": {
+            "k 1 (\\d+)": "setvol $1",
+            "b (\\d) (\\w)": "tune $1 $2",
+            "b k s": "pause",
+            "b k l": "stop",
+            "playlist newsong": "is_playing",
+            "playlist pause 1": "is_paused",
+            "playlist pause 0": "is_playing",
+            "pause": "is_paused",
+            "stop": "is_stopped"
+        },
+        "paused": {
+            "b k s": "unpause",
+            "playlist newsong": "is_playing",
+            "playlist pause 0": "is_playing",
+            "playlist stop": "is_stopped",
+            "playlist": null,
+            "play": "is_playing",
+            "stop": "is_stopped"
+        },
+        "stopped": {
+            "b k l": "play",
+            "playlist newsong": "is_playing",
+            "playlist": "",
+            "play": "is_playing"
+        }
+    }
+}
